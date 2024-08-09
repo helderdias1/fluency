@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meus Sites Favoritos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        h1 {
+            color: #4a4a4a;
+            margin-bottom: 40px;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            max-width: 800px;
+            width: 100%;
+            justify-items: center;
+        }
+        .card {
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            transition: transform 0.3s;
+            width: 150px;
+            text-align: center;
+            padding: 20px;
+            position: relative;
+        }
+        .card:hover {
+            transform: scale(1.05);
+        }
+        .card img {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 10px;
+        }
+        .card a {
+            text-decoration: none;
+            color: #4a4a4a;
+            font-size: 14px;
+        }
+        .add-site-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #4a4a4a;
+            color: #ffffff;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .add-site-form {
+            display: none;
+            position: absolute;
+            top: 60px;
+            right: 20px;
+            background-color: #ffffff;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .add-site-form input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .add-site-form button {
+            background-color: #4a4a4a;
+            color: #ffffff;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+        }
+        .context-menu {
+            display: none;
+            position: absolute;
+            background-color: #ffffff;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+        .context-menu button {
+            background-color: #ffffff;
+            color: #4a4a4a;
+            padding: 10px;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+        }
+        .context-menu button:hover {
+            background-color: #f5f5f5;
+        }
+    </style>
+</head>
+<body>
+    <h1>Meus Sites Favoritos</h1>
+    <button class="add-site-btn">Adicionar Site</button>
+    <div class="add-site-form">
+        <input type="text" id="site-url" placeholder="Digite o URL do site" onblur="fetchSiteInfo()">
+        <input type="text" id="site-img" placeholder="Digite o URL da imagem">
+        <input type="text" id="site-name" placeholder="Digite o nome do site">
+        <button onclick="addSite()">Adicionar</button>
+    </div>
+    <div class="container" id="site-container"></div>
+    <div class="context-menu" id="context-menu">
+        <button onclick="removeSite()">Excluir</button>
+    </div>
+    <script>
+        const addSiteBtn = document.querySelector('.add-site-btn');
+        const addSiteForm = document.querySelector('.add-site-form');
+        const siteContainer = document.getElementById('site-container');
+        const contextMenu = document.getElementById('context-menu');
+        let contextMenuTarget;
+
+        const defaultSites = [
+            { url: "https://calendar.google.com/calendar/u/0/r", img: "https://ssl.gstatic.com/calendar/images/dynamiclogo_2020q4/calendar_16_2x.png", name: "Google Calendar" },
+            { url: "https://drive.google.com/drive/u/0/home", img: "https://ssl.gstatic.com/images/branding/product/1x/drive_2020q4_48dp.png", name: "Google Drive" },
+            { url: "https://www.canva.com/", img: "https://static.canva.com/static/images/canva_logo.png", name: "Canva" },
+            { url: "https://app.adapta.one/chats/gpt", img: "https://app.adapta.one/favicon.ico", name: "Adapta" },
+            { url: "https://mail.google.com/mail/u/0/#inbox", img: "https://ssl.gstatic.com/ui/v1/icons/mail/rfr/gmail.ico", name: "Gmail" },
+            { url: "https://classroom.google.com/", img: "https://www.gstatic.com/classroom/logo_square_rounded.svg", name: "Google Classroom" }
+        ];
+
+        addSiteBtn.addEventListener('click', () => {
+            addSiteForm.style.display = addSiteForm.style.display === 'block' ? 'none' : 'block';
+        });
+
+        function loadSites() {
+            const storedSites = JSON.parse(localStorage.getItem('sites')) || defaultSites;
+            siteContainer.innerHTML = '';
+            storedSites.forEach(site => {
+                const card = createCard(site.url, site.img, site.name);
+                siteContainer.appendChild(card);
+            });
+        }
+
+        function createCard(url, img, name) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.oncontextmenu = function(event) { showContextMenu(event, card); };
+            card.innerHTML = `
+                <a href="${url}" target="_blank">
+                    <img src="${img}" alt="${name}">
+                    <div>${name}</div>
+                </a>
+            `;
+            return card;
+        }
+
+        function addSite() {
+            const siteUrl = document.getElementById('site-url').value;
+            const siteImg = document.getElementById('site-img').value;
+            const siteName = document.getElementById('site-name').value;
+            if (siteUrl && siteImg && siteName) {
+                const newSite = { url: siteUrl, img: siteImg, name: siteName };
+                const storedSites = JSON.parse(localStorage.getItem('sites')) || defaultSites;
+                storedSites.push(newSite);
+                localStorage.setItem('sites', JSON.stringify(storedSites));
+                const newCard = createCard(newSite.url, newSite.img, newSite.name);
+                siteContainer.appendChild(newCard);
+                addSiteForm.style.display = 'none';
+                document.getElementById('site-url').value = '';
+                document.getElementById('site-img').value = '';
+                document.getElementById('site-name').value = '';
+            }
+        }
+
+        function showContextMenu(event, target) {
+            event.preventDefault();
+            contextMenu.style.display = 'block';
+            contextMenu.style.left = `${event.pageX}px`;
+            contextMenu.style.top = `${event.pageY}px`;
+            contextMenuTarget = target;
+        }
+
+        window.addEventListener('click', () => {
+            contextMenu.style.display = 'none';
+        });
+
+        function removeSite() {
+            if (contextMenuTarget) {
+                const url = contextMenuTarget.querySelector('a').href;
+                let storedSites = JSON.parse(localStorage.getItem('sites')) || defaultSites;
+                storedSites = storedSites.filter(site => site.url !== url);
+                localStorage.setItem('sites', JSON.stringify(storedSites));
+                contextMenuTarget.remove();
+                contextMenuTarget = null;
+                contextMenu.style.display = 'none';
+            }
+        }
+
+        async function fetchSiteInfo() {
+            const siteUrl = document.getElementById('site-url').value;
+            if (siteUrl) {
+                try {
+                    const response = await fetch(`https://api.linkpreview.net/?key=23db4154e917c838fce8aaea9ef9f8a1&q=${siteUrl}`);
+                    const data = await response.json();
+                    document.getElementById('site-img').value = data.image;
+                    document.getElementById('site-name').value = data.title;
+                } catch (error) {
+                    console.error('Erro ao buscar informações do site:', error);
+                }
+            }
+        }
+
+        // Carrega os sites ao abrir a página
+        loadSites();
+    </script>
+</body>
+</html>
